@@ -48,6 +48,8 @@ def save_run(
             (topic, created_at, json.dumps(config), json.dumps(sources)),
         )
         run_id = cursor.lastrowid
+        if run_id is None:
+            raise RuntimeError("Failed to insert tweet run")
         conn.executemany(
             "INSERT INTO tweets (run_id, text) VALUES (?, ?)",
             [(run_id, tweet) for tweet in tweets],

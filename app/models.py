@@ -4,6 +4,9 @@ from dataclasses import dataclass
 from typing import Iterable
 from pydantic import BaseModel, Field
 
+TWEET_MAX_LENGTH = 280
+NO_SOURCES_MESSAGE = "- No real-time sources found."
+
 
 @dataclass(frozen=True)
 class NewsItem:
@@ -49,4 +52,4 @@ def news_to_bullets(items: Iterable[NewsItem]) -> str:
         if item.description:
             line += f" ({item.description})"
         bullets.append(line)
-    return "\n".join(bullets) if bullets else "- No real-time sources found."
+    return "\n".join(bullets) if bullets else NO_SOURCES_MESSAGE

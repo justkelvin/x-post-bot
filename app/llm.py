@@ -7,6 +7,17 @@ class LLMError(RuntimeError):
     pass
 
 
+def _extract_error(response: httpx.Response) -> str:
+    try:
+        payload = response.json()
+        message = payload.get("error", {}).get("message") or payload.get("message")
+        if message:
+            return str(message)
+    except ValueError:
+        pass
+    return response.text[:500]
+
+
 async def chat_completion(
     *,
     api_key: str,
@@ -27,7 +38,8 @@ async def chat_completion(
     async with httpx.AsyncClient(timeout=30) as client:
         response = await client.post(f"{base_url}/chat/completions", json=payload, headers=headers)
         if response.status_code >= 400:
-            raise LLMError(f"LLM request failed: {response.status_code} {response.text}")
+            error_detail = _extract_error(response)
+            raise LLMError(f"LLM request failed: {response.status_code} {error_detail}")
         data = response.json()
     choices = data.get("choices") or []
     if not choices:

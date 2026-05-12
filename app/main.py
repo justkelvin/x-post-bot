@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import uuid
 from contextlib import asynccontextmanager
@@ -14,6 +15,7 @@ from app.llm import LLMError, chat_completion
 from app.models import (
     ScheduleRequest,
     ScheduleResponse,
+    TWEET_MAX_LENGTH,
     TweetRequest,
     TweetResponse,
     news_to_bullets,
@@ -51,7 +53,6 @@ Each tweet must:
 
 Return them as a JSON array of strings, like: ["tweet1", "tweet2"]"""
 
-TWEET_MAX_LENGTH = 280
 ELLIPSIS = "…"
 
 @asynccontextmanager
@@ -94,12 +95,15 @@ def _parse_json_array(text: str) -> list[str]:
     cleaned = _strip_code_fences(text)
     try:
         data = json.loads(cleaned)
-    except json.JSONDecodeError:
+    except json.JSONDecodeError as exc:
         start = cleaned.find("[")
         end = cleaned.rfind("]")
         if start == -1 or end == -1:
-            raise
-        data = json.loads(cleaned[start : end + 1])
+            raise ValueError("Failed to parse LLM response as JSON array") from exc
+        try:
+            data = json.loads(cleaned[start : end + 1])
+        except json.JSONDecodeError as exc_inner:
+            raise ValueError("Failed to parse LLM response as JSON array") from exc_inner
     if not isinstance(data, list):
         raise ValueError("LLM response was not a JSON array")
     return [str(item).strip() for item in data if str(item).strip()]
@@ -153,7 +157,12 @@ async def _generate_tweets(req: TweetRequest) -> TweetResponse:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
     tweets = _parse_json_array(response_text)
-    tweets = [_trim_tweet(humanize_tweet(tweet, seed=i)) for i, tweet in enumerate(tweets)]
+    humanized: list[str] = []
+    for tweet in tweets:
+        seed_source = f"{req.topic}:{tweet}".encode("utf-8")
+        seed = int.from_bytes(hashlib.sha256(seed_source).digest()[:4], "big")
+        humanized.append(_trim_tweet(humanize_tweet(tweet, seed=seed)))
+    tweets = humanized
 
     sources = [item.url for item in news_items if item.url]
     await asyncio.to_thread(

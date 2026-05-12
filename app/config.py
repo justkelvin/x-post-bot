@@ -39,7 +39,7 @@ def _get_int(name: str, default: int) -> int:
     try:
         return int(value)
     except ValueError as exc:
-        raise ValueError(f"{name} must be an integer") from exc
+        raise ValueError(f"{name} must be an integer, got: {value!r}") from exc
 
 
 def _get_float(name: str, default: float) -> float:
@@ -49,7 +49,7 @@ def _get_float(name: str, default: float) -> float:
     try:
         return float(value)
     except ValueError as exc:
-        raise ValueError(f"{name} must be a number") from exc
+        raise ValueError(f"{name} must be a number, got: {value!r}") from exc
 
 
 @dataclass(frozen=True)
