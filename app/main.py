@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import uuid
+from contextlib import asynccontextmanager
 from typing import Any
 
 from fastapi import FastAPI, HTTPException
@@ -50,7 +51,18 @@ Each tweet must:
 
 Return them as a JSON array of strings, like: ["tweet1", "tweet2"]"""
 
-app = FastAPI(title="x-post-bot", version="0.1.0")
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    init_db(settings.database_path)
+    if settings.scheduler_enabled:
+        scheduler.start()
+    try:
+        yield
+    finally:
+        scheduler.shutdown()
+
+
+app = FastAPI(title="x-post-bot", version="0.1.0", lifespan=lifespan)
 
 
 def _build_config(req: TweetRequest) -> dict[str, str]:
@@ -160,18 +172,6 @@ async def _generate_tweets(req: TweetRequest) -> TweetResponse:
 async def _scheduled_job(topic: str, num_tweets: int) -> None:
     req = TweetRequest(topic=topic, num_tweets=num_tweets)
     await _generate_tweets(req)
-
-
-@app.on_event("startup")
-async def _startup() -> None:
-    init_db(settings.database_path)
-    if settings.scheduler_enabled:
-        scheduler.start()
-
-
-@app.on_event("shutdown")
-async def _shutdown() -> None:
-    scheduler.shutdown()
 
 
 @app.get("/health")

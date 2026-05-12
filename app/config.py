@@ -51,6 +51,7 @@ def _get_float(name: str, default: float) -> float:
     except ValueError as exc:
         raise ValueError(f"{name} must be a number") from exc
 
+
 @dataclass(frozen=True)
 class Settings:
     openai_api_key: str | None = os.getenv("OPENAI_API_KEY")
