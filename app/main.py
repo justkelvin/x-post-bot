@@ -97,6 +97,12 @@ def _excerpt(text: str, limit: int = 120) -> str:
     return f"{text[:limit]}…"
 
 
+def _generate_seed(topic: str, tweet: str) -> int:
+    """Generate a deterministic seed so humanization is repeatable for a topic."""
+    seed_source = f"{topic}:{tweet}".encode("utf-8")
+    return int.from_bytes(hashlib.sha256(seed_source).digest()[:4], "big")
+
+
 def _parse_json_array(text: str) -> list[str]:
     cleaned = _strip_code_fences(text)
     excerpt = _excerpt(cleaned)
@@ -131,7 +137,13 @@ def _trim_tweet(text: str) -> str:
 
 async def _generate_tweets(req: TweetRequest) -> TweetResponse:
     if not settings.openai_api_key:
-        raise HTTPException(status_code=503, detail="OPENAI_API_KEY is not set")
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "OPENAI_API_KEY environment variable is required but not configured. "
+                "Set it in your environment or .env file."
+            ),
+        )
 
     config = _build_config(req)
     news_items = await gather_news(
@@ -172,8 +184,7 @@ async def _generate_tweets(req: TweetRequest) -> TweetResponse:
     tweets = _parse_json_array(response_text)
     humanized: list[str] = []
     for tweet in tweets:
-        seed_source = f"{req.topic}:{tweet}".encode("utf-8")
-        seed = int.from_bytes(hashlib.sha256(seed_source).digest()[:4], "big")
+        seed = _generate_seed(req.topic, tweet)
         humanized.append(_trim_tweet(humanize_tweet(tweet, seed=seed)))
     tweets = humanized
 
@@ -215,7 +226,10 @@ async def schedule(req: ScheduleRequest) -> ScheduleResponse:
     if not settings.scheduler_enabled:
         raise HTTPException(
             status_code=400,
-            detail="Scheduling is disabled. Set SCHEDULER_ENABLED=true to enable.",
+            detail=(
+                "Scheduling is disabled. Set SCHEDULER_ENABLED to true, yes, 1, or on "
+                "to enable."
+            ),
         )
     interval = req.interval_minutes or settings.schedule_interval_minutes
     job_id = f"topic-{uuid.uuid4().hex[:10]}"

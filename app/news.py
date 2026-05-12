@@ -14,9 +14,10 @@ NEWS_DEDUPE_MULTIPLIER = 2
 
 async def fetch_newsapi(topic: str, api_key: str, hours: int, limit: int) -> list[NewsItem]:
     url = "https://newsapi.org/v2/everything"
+    start_time = datetime.now(timezone.utc) - timedelta(hours=hours)
     params = {
         "q": topic,
-        "from": (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat(),
+        "from": start_time.strftime("%Y-%m-%dT%H:%M:%SZ"),
         "sortBy": "publishedAt",
         "language": "en",
         "pageSize": limit,
@@ -72,7 +73,7 @@ async def gather_news(
     news_limit: int,
 ) -> list[NewsItem]:
     tasks = [fetch_google_news_rss(topic, news_limit)]
-    if use_newsapi and news_api_key:
+    if use_newsapi and news_api_key and news_api_key.strip():
         tasks.append(fetch_newsapi(topic, news_api_key, news_api_hours, news_limit))
     results = await asyncio.gather(*tasks, return_exceptions=True)
 

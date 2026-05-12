@@ -7,6 +7,7 @@ from app.models import TWEET_MAX_LENGTH
 
 EMOJIS = ["🔥", "🚨", "✨", "🤯", "👀", "🧠"]
 STARTERS = ["Honestly", "Hot take", "Current mood", "I can't believe", "Just saw this"]
+STARTER_PREFIXES = tuple(STARTERS)
 LOWERCASE_PROBABILITY = 0.15
 STARTER_PROBABILITY = 0.2
 AMPERSAND_PROBABILITY = 0.15
@@ -20,7 +21,7 @@ def humanize_tweet(text: str, seed: int | None = None) -> str:
     if cleaned and cleaned[0].isalpha() and rng.random() < LOWERCASE_PROBABILITY:
         cleaned = cleaned[0].lower() + cleaned[1:]
 
-    if rng.random() < STARTER_PROBABILITY and not any(cleaned.startswith(prefix) for prefix in STARTERS):
+    if rng.random() < STARTER_PROBABILITY and not cleaned.startswith(STARTER_PREFIXES):
         prefix = rng.choice(STARTERS)
         candidate = f"{prefix}: {cleaned}"
         if len(candidate) <= TWEET_MAX_LENGTH:

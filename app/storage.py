@@ -50,7 +50,7 @@ def save_run(
         run_id = cursor.lastrowid
         if run_id is None:
             raise RuntimeError(
-                f"Failed to insert tweet run into {path}. Check database permissions."
+                f"Failed to insert tweet run into {path}. Database may be read-only or corrupted."
             )
         conn.executemany(
             "INSERT INTO tweets (run_id, text) VALUES (?, ?)",
