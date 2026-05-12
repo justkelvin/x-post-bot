@@ -91,21 +91,34 @@ def _strip_code_fences(text: str) -> str:
     return cleaned.strip()
 
 
+def _excerpt(text: str, limit: int = 120) -> str:
+    if len(text) <= limit:
+        return text
+    return f"{text[:limit]}…"
+
+
 def _parse_json_array(text: str) -> list[str]:
     cleaned = _strip_code_fences(text)
+    excerpt = _excerpt(cleaned)
     try:
         data = json.loads(cleaned)
     except json.JSONDecodeError as exc:
         start = cleaned.find("[")
         end = cleaned.rfind("]")
         if start == -1 or end == -1:
-            raise ValueError("Failed to parse LLM response as JSON array") from exc
+            raise ValueError(
+                f"Failed to parse LLM response as JSON array. Response excerpt: {excerpt!r}"
+            ) from exc
         try:
             data = json.loads(cleaned[start : end + 1])
         except json.JSONDecodeError as exc_inner:
-            raise ValueError("Failed to parse LLM response as JSON array") from exc_inner
+            raise ValueError(
+                f"Failed to parse extracted JSON array from LLM response. Response excerpt: {excerpt!r}"
+            ) from exc_inner
     if not isinstance(data, list):
-        raise ValueError("LLM response was not a JSON array")
+        raise ValueError(
+            f"LLM response was not a JSON array (got {type(data).__name__})"
+        )
     return [str(item).strip() for item in data if str(item).strip()]
 
 
@@ -118,7 +131,7 @@ def _trim_tweet(text: str) -> str:
 
 async def _generate_tweets(req: TweetRequest) -> TweetResponse:
     if not settings.openai_api_key:
-        raise HTTPException(status_code=400, detail="OPENAI_API_KEY is not set")
+        raise HTTPException(status_code=503, detail="OPENAI_API_KEY is not set")
 
     config = _build_config(req)
     news_items = await gather_news(
@@ -200,7 +213,10 @@ async def generate(req: TweetRequest) -> TweetResponse:
 @app.post("/schedule", response_model=ScheduleResponse)
 async def schedule(req: ScheduleRequest) -> ScheduleResponse:
     if not settings.scheduler_enabled:
-        raise HTTPException(status_code=400, detail="Scheduling is disabled")
+        raise HTTPException(
+            status_code=400,
+            detail="Scheduling is disabled. Set SCHEDULER_ENABLED=true to enable.",
+        )
     interval = req.interval_minutes or settings.schedule_interval_minutes
     job_id = f"topic-{uuid.uuid4().hex[:10]}"
     scheduler.add_interval_job(

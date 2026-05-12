@@ -43,9 +43,13 @@ async def chat_completion(
         data = response.json()
     choices = data.get("choices") or []
     if not choices:
-        raise LLMError("LLM response contained no choices")
+        raise LLMError(
+            f"LLM response contained no choices. Response keys: {list(data.keys())}"
+        )
     message = choices[0].get("message") or {}
     content = message.get("content")
     if not content:
-        raise LLMError("LLM response contained no content")
+        raise LLMError(
+            f"LLM response contained no content. Message keys: {list(message.keys())}"
+        )
     return content

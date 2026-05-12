@@ -18,9 +18,11 @@ class Scheduler:
             self._scheduler.shutdown(wait=False)
             self._started = False
 
-    def add_interval_job(self, job_id: str, interval_minutes: int, func, *args, **kwargs) -> None:
+    def add_interval_job(
+        self, job_id: str, interval_minutes: int, job_func, *args, **kwargs
+    ) -> None:
         self._scheduler.add_job(
-            func,
+            job_func,
             "interval",
             minutes=interval_minutes,
             id=job_id,

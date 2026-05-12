@@ -81,5 +81,5 @@ async def gather_news(
         if isinstance(result, Exception):
             continue
         items.extend(result)
-    # Keep extra items to preserve variety after deduplication.
+    # Keep up to 2x the limit to preserve variety after deduplication across sources.
     return _dedupe(items)[: news_limit * NEWS_DEDUPE_MULTIPLIER]
