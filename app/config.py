@@ -32,22 +32,41 @@ def _get_bool(value: str | None, default: bool = False) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "y", "on"}
 
 
+def _get_int(name: str, default: int) -> int:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    try:
+        return int(value)
+    except ValueError as exc:
+        raise ValueError(f"{name} must be an integer") from exc
+
+
+def _get_float(name: str, default: float) -> float:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    try:
+        return float(value)
+    except ValueError as exc:
+        raise ValueError(f"{name} must be a number") from exc
+
 @dataclass(frozen=True)
 class Settings:
     openai_api_key: str | None = os.getenv("OPENAI_API_KEY")
     openai_base_url: str = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
     openai_model: str = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-    openai_temperature: float = float(os.getenv("OPENAI_TEMPERATURE", "0.9"))
-    openai_max_tokens: int = int(os.getenv("OPENAI_MAX_TOKENS", "500"))
+    openai_temperature: float = _get_float("OPENAI_TEMPERATURE", 0.9)
+    openai_max_tokens: int = _get_int("OPENAI_MAX_TOKENS", 500)
 
     news_api_key: str | None = os.getenv("NEWS_API_KEY")
-    news_api_hours: int = int(os.getenv("NEWS_API_HOURS", "2"))
-    news_limit: int = int(os.getenv("NEWS_LIMIT", "5"))
+    news_api_hours: int = _get_int("NEWS_API_HOURS", 2)
+    news_limit: int = _get_int("NEWS_LIMIT", 5)
 
     database_path: str = os.getenv("DATABASE_PATH", "./x_post_bot.sqlite")
 
     scheduler_enabled: bool = _get_bool(os.getenv("SCHEDULER_ENABLED"), False)
-    schedule_interval_minutes: int = int(os.getenv("SCHEDULE_INTERVAL_MINUTES", "30"))
+    schedule_interval_minutes: int = _get_int("SCHEDULE_INTERVAL_MINUTES", 30)
 
 
 settings = Settings()

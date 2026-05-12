@@ -193,6 +193,8 @@ async def schedule(req: ScheduleRequest) -> ScheduleResponse:
     scheduler.add_interval_job(
         job_id,
         interval,
-        lambda: _scheduled_job(req.topic, req.num_tweets),
+        _scheduled_job,
+        req.topic,
+        req.num_tweets,
     )
     return ScheduleResponse(job_id=job_id, interval_minutes=interval, topic=req.topic)
