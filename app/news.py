@@ -9,6 +9,8 @@ import feedparser
 
 from app.models import NewsItem
 
+NEWS_DEDUPE_MULTIPLIER = 2
+
 
 async def fetch_newsapi(topic: str, api_key: str, hours: int, limit: int) -> list[NewsItem]:
     url = "https://newsapi.org/v2/everything"
@@ -79,4 +81,4 @@ async def gather_news(
         if isinstance(result, Exception):
             continue
         items.extend(result)
-    return _dedupe(items)[: news_limit * 2]
+    return _dedupe(items)[: news_limit * NEWS_DEDUPE_MULTIPLIER]

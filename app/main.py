@@ -51,6 +51,9 @@ Each tweet must:
 
 Return them as a JSON array of strings, like: ["tweet1", "tweet2"]"""
 
+TWEET_MAX_LENGTH = 280
+ELLIPSIS = "…"
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     init_db(settings.database_path)
@@ -103,9 +106,10 @@ def _parse_json_array(text: str) -> list[str]:
 
 
 def _trim_tweet(text: str) -> str:
-    if len(text) <= 280:
+    if len(text) <= TWEET_MAX_LENGTH:
         return text
-    return text[:277].rstrip() + "…"
+    max_body = TWEET_MAX_LENGTH - len(ELLIPSIS)
+    return text[:max_body].rstrip() + ELLIPSIS
 
 
 async def _generate_tweets(req: TweetRequest) -> TweetResponse:
