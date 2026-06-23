@@ -7,6 +7,7 @@ Generate human-feeling, viral X posts from real-time web sources using a configu
 - Prompt + persona + viral guide layer for consistent voice.
 - Optional humanization post-processing.
 - FastAPI endpoint for on-demand generation.
+- Optional Xquik publishing endpoint for generated posts.
 - SQLite persistence for generated runs.
 - Optional scheduler for recurring generation.
 
@@ -39,6 +40,9 @@ uvicorn app.main:app --reload
 - `DATABASE_PATH` (optional): SQLite path for generated runs.
 - `SCHEDULER_ENABLED` (optional): Set `true` to enable scheduling.
 - `SCHEDULE_INTERVAL_MINUTES` (optional): Default interval for scheduled jobs.
+- `XQUIK_API_KEY` (optional): API key used by `POST /publish`.
+- `XQUIK_ACCOUNT` (optional): Connected X account handle or ID used by `POST /publish`.
+- `XQUIK_BASE_URL` (optional): Defaults to `https://xquik.com`.
 
 ## API
 
@@ -63,6 +67,18 @@ Requires `SCHEDULER_ENABLED=true`.
 {
   "topic": "AI regulation",
   "interval_minutes": 60,
+  "num_tweets": 2
+}
+```
+
+### POST /publish
+
+Requires `XQUIK_API_KEY` and `XQUIK_ACCOUNT`. Generates tweets, publishes each
+one through Xquik, and returns the published tweet URLs.
+
+```json
+{
+  "topic": "AI startups",
   "num_tweets": 2
 }
 ```

@@ -33,6 +33,16 @@ class TweetResponse(BaseModel):
     used_news_count: int
 
 
+class PublishedTweet(BaseModel):
+    text: str
+    tweet_id: str
+    url: str
+
+
+class PublishResponse(TweetResponse):
+    published: list[PublishedTweet]
+
+
 class ScheduleRequest(BaseModel):
     topic: str = Field(..., min_length=2, max_length=200)
     interval_minutes: int | None = Field(default=None, ge=5, le=1440)

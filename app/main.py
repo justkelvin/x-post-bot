@@ -13,6 +13,8 @@ from app.config import DEFAULT_CONFIG, settings
 from app.humanize import humanize_tweet
 from app.llm import LLMError, chat_completion
 from app.models import (
+    PublishedTweet,
+    PublishResponse,
     ScheduleRequest,
     ScheduleResponse,
     TWEET_MAX_LENGTH,
@@ -23,6 +25,7 @@ from app.models import (
 from app.news import gather_news
 from app.scheduler import scheduler
 from app.storage import init_db, save_run
+from app.xquik import XquikPublishError, publish_texts
 
 SYSTEM_TEMPLATE = """You are a master X (Twitter) ghostwriter with a unique voice.
 
@@ -211,6 +214,15 @@ async def _scheduled_job(topic: str, num_tweets: int) -> None:
     await _generate_tweets(req)
 
 
+def _require_xquik_config() -> tuple[str, str, str]:
+    if not settings.xquik_api_key or not settings.xquik_account:
+        raise HTTPException(
+            status_code=503,
+            detail="Set XQUIK_API_KEY and XQUIK_ACCOUNT to publish with Xquik.",
+        )
+    return settings.xquik_api_key, settings.xquik_account, settings.xquik_base_url
+
+
 @app.get("/health")
 async def health() -> dict[str, Any]:
     return {"status": "ok", "scheduler": settings.scheduler_enabled}
@@ -219,6 +231,32 @@ async def health() -> dict[str, Any]:
 @app.post("/generate", response_model=TweetResponse)
 async def generate(req: TweetRequest) -> TweetResponse:
     return await _generate_tweets(req)
+
+
+@app.post("/publish", response_model=PublishResponse)
+async def publish(req: TweetRequest) -> PublishResponse:
+    api_key, account, base_url = _require_xquik_config()
+    generated = await _generate_tweets(req)
+    try:
+        results = await publish_texts(
+            generated.tweets,
+            account=account,
+            api_key=api_key,
+            base_url=base_url,
+        )
+    except XquikPublishError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    return PublishResponse(
+        topic=generated.topic,
+        tweets=generated.tweets,
+        sources=generated.sources,
+        used_news_count=generated.used_news_count,
+        published=[
+            PublishedTweet(text=result.text, tweet_id=result.tweet_id, url=result.url)
+            for result in results
+        ],
+    )
 
 
 @app.post("/schedule", response_model=ScheduleResponse)
