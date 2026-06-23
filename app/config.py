@@ -69,5 +69,9 @@ class Settings:
     scheduler_enabled: bool = _get_bool(os.getenv("SCHEDULER_ENABLED"), False)
     schedule_interval_minutes: int = _get_int("SCHEDULE_INTERVAL_MINUTES", 30)
 
+    xquik_api_key: str | None = os.getenv("XQUIK_API_KEY")
+    xquik_account: str | None = os.getenv("XQUIK_ACCOUNT")
+    xquik_base_url: str = os.getenv("XQUIK_BASE_URL", "https://xquik.com")
+
 
 settings = Settings()
